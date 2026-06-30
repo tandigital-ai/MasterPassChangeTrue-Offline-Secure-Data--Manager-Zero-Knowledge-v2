@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="vi" class="h-full bg-slate-950 text-slate-100">
+<head>
+    <!--
+    Offline Secure Data Manager
+    Copyright © 2026 TANDIGITAL-AI. All rights reserved.
+    Tác giả: TANDIGITAL - tandigital.ai@gmail.com
+  -->
+  <meta name="author" content="TANDIGITAL-AI">
+  <meta name="copyright" content="Copyright © 2026 TanDigital">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline Secure Data Manager - Trình Quản Lý Dữ Liệu Bảo Mật Ngoại Tuyến</title>
+  <!-- Favicon nhúng trực tiếp (biểu tượng khiên màu xanh) - khắc phục lỗi 404 -->
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2310b981' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10'/%3E%3C/svg%3E">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#ecfdf5',
+              100: '#d1fae5',
+              500: '#10b981',
+              600: '#059669',
+              700: '#047857',
+              900: '#064e3b',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    /* Tùy chỉnh thanh cuộn */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.3);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.3);
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(148, 163, 184, 0.5);
+    }
+  </style>
+</head>
+<body class="h-full flex flex-col overflow-hidden selection:bg-brand-500 selection:text-white">
+
+  <!-- ==================== LOCK SCREEN (MÀN HÌNH KHÓA / THIẾT LẬP) ==================== -->
+  <div id="lock-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950 px-4 transition-all duration-300">
+    <!-- Hình nền hiệu ứng mạng lưới bảo mật phía sau -->
+    <div class="absolute inset-0 opacity-10 bg-[radial-gradient(#10b981_1px,transparent_1px)] [background-size:16px_16px]"></div>
+    
+    <div class="relative w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-8 backdrop-blur-md">
+      <!-- Logo & Tiêu đề -->
+      <div class="text-center mb-8">
+        <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-brand-500/10 text-brand-500 mb-4 border border-brand-500/20">
+          <i data-lucide="shield-check" class="w-8 h-8"></i>
+        </div>
+        <h1 class="text-2xl font-bold text-white tracking-tight">Két Sắt Bảo Mật</h1>
+        <p class="text-slate-400 text-sm mt-2">Dữ liệu mã hóa ngoại tuyến tuyệt đối (Zero-Knowledge)</p>
+      </div>
+
+      <!-- CHẾ ĐỘ 1: THIẾT LẬP MẬT KHẨU CHÍNH (Chạy khi sử dụng lần đầu) -->
+      <div id="setup-mode-container" class="hidden space-y-5">
+        <div class="bg-brand-500/10 border border-brand-500/20 rounded-xl p-4 text-xs text-brand-100 leading-relaxed">
+          <div class="flex items-start gap-2">
+            <i data-lucide="info" class="w-4 h-4 text-brand-500 shrink-0 mt-0.5"></i>
+            <div>
+              <strong class="text-brand-500">Quan trọng:</strong> Hãy lưu trữ kỹ Mật khẩu chính. Chúng tôi không lưu trữ mật khẩu của bạn trên bất kỳ máy chủ nào. Nếu mất mật khẩu này, toàn bộ dữ liệu của bạn sẽ vĩnh viễn không thể khôi phục.
+            </div>
+          </div>
+        </div>
+
+        <form id="setup-password-form" class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Mật khẩu chính mới</label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500">
+                <i data-lucide="key-round" class="w-4 h-4"></i>
+              </span>
+              <input type="password" id="master-password-setup" required minlength="8"
+                class="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 pl-10 pr-4 text-white placeholder-slate-600 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 text-sm transition-all"
+                placeholder="Tối thiểu 8 ký tự...">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Xác nhận mật khẩu chính</label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500">
+                <i data-lucide="shield-alert" class="w-4 h-4"></i>
+              </span>
+              <input type="password" id="master-password-confirm" required minlength="8"
+                class="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 pl-10 pr-4 text-white placeholder-slate-600 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 text-sm transition-all"
+                placeholder="Nhập lại mật khẩu chính...">
+            </div>
+          </div>
+
+          <div id="setup-error-msg" class="text-rose-500 text-xs hidden flex items-center gap-1">
+            <i data-lucide="alert-circle" class="w-3.5 h-3.5"></i>
+            <span>Mật khẩu xác nhận không khớp!</span>
+          </div>
+
+          <button type="submit" 
+            class="w-full bg-brand-600 hover:bg-brand-500 text-white font-medium py-3 px-4 rounded-xl transition-all shadow-lg shadow-brand-600/20 active:scale-[0.98] text-sm flex items-center justify-center gap-2">
+            <i data-lucide="lock-open" class="w-4 h-4"></i> Khởi Tạo Két Sắt Bảo Mật
+          </button>
+        </form>
+      </div>
+
+      <!-- CHẾ ĐỘ 2: MỞ KHÓA KÉT SẮT (Chạy khi đã có mật khẩu chính) -->
+      <div id="unlock-mode-container" class="hidden space-y-5">
+        <form id="unlock-password-form" class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Mật khẩu chính của bạn</label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500">
+                <i data-lucide="key-round" class="w-4 h-4"></i>
+              </span>
+              <input type="password" id="master-password-unlock" required
+                class="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 pl-10 pr-4 text-white placeholder-slate-600 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 text-sm transition-all"
+                placeholder="Nhập mật khẩu chính để mở khóa...">
+            </div>
+          </div>
+
+          <div id="unlock-error-msg" class="text-rose-500 text-xs hidden flex items-center gap-1">
+            <i data-lucide="alert-circle" class="w-3.5 h-3.5"></i>
+            <span>Mật khẩu chính không chính xác! Vui lòng thử lại.</span>
+          </div>
+
+          <button type="submit" 
+            class="w-full bg-brand-600 hover:bg-brand-500 text-white font-medium py-3 px-4 rounded-xl transition-all shadow-lg shadow-brand-600/20 active:scale-[0.98] text-sm flex items-center justify-center gap-2">
+            <i data-lucide="unlock" class="w-4 h-4"></i> Mở Khóa Két Sắt
+          </button>
+        </form>
+      </div>
+
+      <!-- Footer thông tin bảo mật ngoại tuyến -->
+      <div class="mt-8 pt-6 border-t border-slate-800/60 text-center text-xs text-slate-500 flex flex-col items-center justify-center gap-1.5">
+        <div class="flex items-center gap-1.5">
+          <i data-lucide="wifi-off" class="w-3.5 h-3.5 text-brand-500"></i>
+          <span>Hoạt động 100% ngoại tuyến và an toàn</span>
+        </div>
+        <span>© 2026 TANDIGITAL-AI. All rights reserved.</span>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ==================== MAIN DASHBOARD WORKSPACE ==================== -->
+  <div id="dashboard-screen" class="hidden h-full flex flex-col md:flex-row overflow-hidden bg-slate-950">
+    
+    <!-- SIDEBAR -->
+    <aside id="sidebar" class="w-full md:w-80 bg-slate-900 border-b md:border-b-0 md:border-r border-slate-800 flex flex-col shrink-0 h-auto md:h-full">
+      <!-- Logo và Tiêu đề -->
+      <div class="p-4 border-b border-slate-800/80 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-lg bg-brand-500/10 text-brand-500 flex items-center justify-center border border-brand-500/20">
+            <i data-lucide="shield" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h2 class="font-bold text-sm tracking-tight text-white">SecureVault</h2>
+            <span class="text-[10px] text-brand-500 font-medium tracking-wider uppercase">Offline Mode</span>
+          </div>
+        </div>
+        <!-- Nút khóa nhanh trên Mobile -->
+        <button id="btn-lock-vault-mobile" class="md:hidden p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-all" title="Khóa két sắt">
+          <i data-lucide="lock" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Bộ tìm kiếm nhanh -->
+      <div class="p-4 border-b border-slate-800/40">
+        <div class="relative">
+          <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500">
+            <i data-lucide="search" class="w-4 h-4"></i>
+          </span>
+          <input type="text" id="search-input"
+            class="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 pl-9 pr-4 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 transition-all"
+            placeholder="Tìm kiếm nhanh mật khẩu, khóa...">
+        </div>
+      </div>
+
+      <!-- Danh sách Danh mục & Phân loại -->
+      <div class="flex-1 overflow-y-auto p-3 space-y-6">
+        <!-- Nhóm hệ thống -->
+        <div class="space-y-1">
+          <span class="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-2">Bộ lọc chính</span>
+          
+          <button id="filter-all" class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium text-brand-500 bg-brand-500/10 transition-all">
+            <div class="flex items-center gap-2.5">
+              <i data-lucide="layers" class="w-4 h-4"></i>
+              <span>Tất cả dữ liệu</span>
+            </div>
+            <span id="badge-count-all" class="bg-slate-850 text-slate-400 px-1.5 py-0.5 rounded text-[10px]">0</span>
+          </button>
+
+          <button id="filter-favorites" class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-all">
+            <div class="flex items-center gap-2.5">
+              <i data-lucide="star" class="w-4 h-4 text-amber-500"></i>
+              <span>Mục yêu thích</span>
+            </div>
+            <span id="badge-count-fav" class="bg-slate-850 text-slate-400 px-1.5 py-0.5 rounded text-[10px]">0</span>
+          </button>
+        </div>
+
+        <!-- Nhóm Danh mục Tùy chỉnh -->
+        <div class="space-y-1">
+          <div class="flex items-center justify-between px-3 mb-2">
+            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Danh mục của bạn</span>
+            <button id="btn-add-category" class="text-brand-500 hover:text-brand-400 transition-colors p-0.5 rounded hover:bg-brand-500/10" title="Thêm danh mục mới">
+              <i data-lucide="plus" class="w-4 h-4"></i>
+            </button>
+          </div>
+
+          <!-- Container danh sách danh mục động -->
+          <div id="category-list" class="space-y-1">
+            <!-- Được render động từ JS -->
+            <div class="text-center py-4 text-xs text-slate-600">Đang tải danh mục...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Thanh thông tin phía dưới Sidebar -->
+      <div class="p-4 border-t border-slate-800 bg-slate-900/50 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <button id="btn-open-settings" class="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all" title="Cấu hình hệ thống">
+            <i data-lucide="settings" class="w-4.5 h-4.5"></i>
+          </button>
+          <button id="btn-open-generator" class="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all" title="Trình tạo mật khẩu">
+            <i data-lucide="key" class="w-4.5 h-4.5"></i>
+          </button>
+        </div>
+        
+        <button id="btn-lock-vault" class="flex items-center gap-1.5 px-3 py-1.5 bg-rose-550/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500 hover:text-white rounded-lg text-xs font-medium transition-all" title="Khóa két sắt ngay lập tức">
+          <i data-lucide="lock" class="w-3.5 h-3.5"></i>
+          <span>Khóa Két</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT AREA -->
+    <main class="flex-1 flex flex-col h-full overflow-hidden bg-slate-950">
+      
+      <!-- TOP NAVIGATION BAR -->
+      <header class="h-16 border-b border-slate-800/80 px-6 flex items-center justify-between shrink-0 bg-slate-900/30">
+        <div class="flex items-center gap-3">
+          <h1 id="current-category-title" class="text-base font-bold text-white">Tất cả dữ liệu</h1>
+          <span id="current-category-count" class="text-xs text-slate-500 font-normal bg-slate-900 border border-slate-800 px-2 py-0.5 rounded-full">0 mục</span>
+        </div>
+
+        <!-- Bộ chọn sắp xếp -->
+        <div class="flex items-center gap-2 mr-2">
+          <select id="sort-select" class="bg-slate-900 border border-slate-800 rounded-lg py-1.5 px-2 text-xs text-slate-300 focus:outline-none focus:border-brand-500">
+            <option value="updated_desc">Mới cập nhật</option>
+            <option value="created_desc">Mới tạo</option>
+            <option value="title_asc">Tên A → Z</option>
+            <option value="title_desc">Tên Z → A</option>
+            <option value="category">Theo nhóm danh mục</option>
+          </select>
+        </div>
+
+        <!-- Nhóm nút hành động -->
+        <div class="flex items-center gap-2">
+          <!-- Nút thêm bản ghi mới -->
+          <button id="btn-add-item" class="bg-brand-600 hover:bg-brand-500 text-white text-xs font-medium py-2 px-3.5 rounded-lg flex items-center gap-1.5 transition-all shadow-md active:scale-95">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i>
+            <span>Thêm Bản Ghi</span>
+          </button>
+
+          <!-- Dropdown Sao lưu / Nhập dữ liệu -->
+          <div class="relative inline-block text-left">
+            <button id="btn-backup-menu" class="p-2 bg-slate-900 border border-slate-800 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-all" title="Sao lưu & Nhập xuất">
+              <i data-lucide="database" class="w-4 h-4"></i>
+            </button>
+            
+            <!-- Menu sao lưu (ẩn mặc định, toggle bằng JS) -->
+            <div id="backup-dropdown-menu" class="hidden absolute right-0 mt-2 w-48 rounded-xl bg-slate-900 border border-slate-800 shadow-xl z-30 py-1 text-xs">
+              <button id="btn-export" class="w-full text-left px-4 py-2.5 text-slate-300 hover:bg-slate-800 hover:text-white flex items-center gap-2 transition-colors">
+                <i data-lucide="download" class="w-3.5 h-3.5 text-emerald-500"></i>
+                <span>Xuất file sao lưu (.json)</span>
+              </button>
+              
+              <label for="import-file-input" class="w-full text-left px-4 py-2.5 text-slate-300 hover:bg-slate-800 hover:text-white flex items-center gap-2 cursor-pointer transition-colors">
+                <i data-lucide="upload" class="w-3.5 h-3.5 text-amber-500"></i>
+                <span>Nhập file sao lưu (.json)</span>
+                <input type="file" id="import-file-input" accept=".json" class="hidden">
+              </label>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- VAULT ITEMS CONTAINER -->
+      <div class="flex-1 overflow-y-auto p-6">
+        <!-- Trạng thái trống (Empty State) -->
+        <div id="empty-state" class="hidden flex flex-col items-center justify-center py-20 text-center max-w-md mx-auto">
+          <div class="w-16 h-16 rounded-2xl bg-slate-900 border border-slate-800 text-slate-600 flex items-center justify-center mb-4">
+            <i data-lucide="folder-open" class="w-8 h-8"></i>
+          </div>
+          <h3 class="text-sm font-semibold text-slate-300">Không tìm thấy dữ liệu</h3>
+          <p class="text-xs text-slate-500 mt-2 leading-relaxed">Chưa có bản ghi bảo mật nào được lưu trữ trong danh mục này hoặc không khớp với kết quả tìm kiếm của bạn.</p>
+          <button id="btn-empty-add-item" class="mt-4 bg-slate-900 hover:bg-slate-800 border border-slate-850 text-brand-500 text-xs font-semibold py-2 px-4 rounded-lg transition-all">
+            Tạo bản ghi đầu tiên ngay
+          </button>
+        </div>
+
+        <!-- Grid hiển thị danh sách các mục dữ liệu -->
+        <div id="vault-items-grid" class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+          <!-- Được render động từ JS -->
+        </div>
+      </div>
+
+      <!-- Trạng thái đồng bộ hóa/mã hóa góc dưới cùng -->
+      <footer class="h-10 border-t border-slate-800/60 px-6 flex items-center justify-between text-[10px] text-slate-500 bg-slate-900/10">
+        <div class="flex items-center gap-1.5">
+          <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span>Hệ thống bảo mật cục bộ đang hoạt động</span>
+        </div>
+        <div>
+          <span>Thuật toán: AES-256-GCM & PBKDF2 SHA-512</span>
+        </div>
+      </footer>
+    </main>
+  </div>
+
+
+  <!-- ==================== MODAL: THÊM / SỬA DANH MỤC (CATEGORY) ==================== -->
+  <div id="category-modal" class="hidden fixed inset-0 z-40 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+    <div class="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden">
+      <!-- Header -->
+      <div class="px-6 py-4 border-b border-slate-800/80 flex items-center justify-between">
+        <h3 class="text-sm font-bold text-white flex items-center gap-2">
+          <i data-lucide="folder-plus" class="w-4 h-4 text-brand-500"></i>
+          <span>Tạo Danh Mục Dữ Liệu Mới</span>
+        </h3>
+        <button class="category-modal-close text-slate-500 hover:text-white transition-colors">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Form -->
+      <form id="category-form" class="p-6 space-y-4">
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Tên danh mục</label>
+          <input type="text" id="category-name-input" required
+            class="w-full bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-brand-500"
+            placeholder="Ví dụ: Tài khoản Ngân hàng, API Keys, Máy chủ VPS...">
+        </div>
+
+        <!-- Định nghĩa các trường dữ liệu tùy biến -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400">Định nghĩa các trường dữ liệu</label>
+            <button type="button" id="btn-add-form-field" class="text-[11px] font-semibold text-brand-500 hover:text-brand-400 flex items-center gap-1">
+              <i data-lucide="plus" class="w-3 h-3"></i> Thêm trường
+            </button>
+          </div>
+
+          <!-- Container chứa các dòng định nghĩa trường -->
+          <div id="category-fields-container" class="space-y-2 max-h-48 overflow-y-auto pr-1">
+            <!-- Sẽ được thêm tự động bằng JS, dưới đây là mẫu cấu trúc của 1 dòng -->
+          </div>
+        </div>
+
+        <!-- Footer nút hành động -->
+        <div class="pt-4 border-t border-slate-800/60 flex items-center justify-end gap-2">
+          <button type="button" class="category-modal-close px-4 py-2 bg-slate-950 border border-slate-800 hover:bg-slate-800 rounded-lg text-xs font-medium text-slate-400 transition-colors">
+            Hủy bỏ
+          </button>
+          <button type="submit" class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-medium transition-all">
+            Lưu Danh Mục
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ==================== MODAL: THÊM / SỬA BẢN GHI VAULT (VAULT ITEM) ==================== -->
+  <div id="item-modal" class="hidden fixed inset-0 z-40 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+    <div class="w-full max-w-xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden">
+      <!-- Header -->
+      <div class="px-6 py-4 border-b border-slate-800/80 flex items-center justify-between">
+        <h3 id="item-modal-title" class="text-sm font-bold text-white flex items-center gap-2">
+          <i data-lucide="file-plus" class="w-4 h-4 text-brand-500"></i>
+          <span>Thêm Bản Ghi Bảo Mật</span>
+        </h3>
+        <button class="item-modal-close text-slate-500 hover:text-white transition-colors">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Form -->
+      <form id="item-form" class="p-6 space-y-4">
+        <!-- Input ẩn chứa ID của bản ghi (nếu là chế độ sửa) -->
+        <input type="hidden" id="item-id-input">
+        <!-- Input ẩn chứa ID danh mục tương ứng -->
+        <input type="hidden" id="item-category-id-input">
+
+        <!-- Các trường dữ liệu động sẽ được tạo tự động tại đây dựa trên danh mục -->
+        <div id="item-fields-container" class="space-y-4 max-h-96 overflow-y-auto pr-1">
+          <!-- Được render động từ JS -->
+        </div>
+
+        <!-- Tùy chọn yêu thích -->
+        <div class="flex items-center gap-2 pt-2">
+          <input type="checkbox" id="item-favorite-checkbox" class="w-4 h-4 rounded border-slate-850 bg-slate-950 text-brand-500 focus:ring-brand-500 focus:ring-offset-slate-900">
+          <label for="item-favorite-checkbox" class="text-xs text-slate-300 cursor-pointer select-none">Đánh dấu là mục yêu thích (Ghim lên đầu)</label>
+        </div>
+
+        <!-- Footer nút hành động -->
+        <div class="pt-4 border-t border-slate-800/60 flex items-center justify-end gap-2">
+          <button type="button" class="item-modal-close px-4 py-2 bg-slate-950 border border-slate-800 hover:bg-slate-800 rounded-lg text-xs font-medium text-slate-400 transition-colors">
+            Hủy bỏ
+          </button>
+          <button type="submit" class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-medium transition-all">
+            Lưu Bản Ghi
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ==================== MODAL: TRÌNH TẠO MẬT KHẨU MẠNH (PASSWORD GENERATOR) ==================== -->
+  <div id="generator-modal" class="hidden fixed inset-0 z-40 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+    <div class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden">
+      <!-- Header -->
+      <div class="px-6 py-4 border-b border-slate-800/80 flex items-center justify-between">
+        <h3 class="text-sm font-bold text-white flex items-center gap-2">
+          <i data-lucide="key" class="w-4 h-4 text-brand-500"></i>
+          <span>Trình Tạo Mật Khẩu Mạnh</span>
+        </h3>
+        <button class="generator-modal-close text-slate-500 hover:text-white transition-colors">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Nội dung chính -->
+      <div class="p-6 space-y-5">
+        <!-- Ô hiển thị kết quả -->
+        <div class="relative bg-slate-950 border border-slate-800 rounded-xl p-3.5 flex items-center justify-between gap-3">
+          <span id="generator-result" class="font-mono text-sm text-brand-500 select-all break-all tracking-wider">Mật khẩu của bạn...</span>
+          <button id="btn-copy-generated" class="p-2 bg-slate-900 hover:bg-slate-850 rounded-lg text-slate-400 hover:text-brand-500 transition-all shrink-0" title="Sao chép mật khẩu">
+            <i data-lucide="copy" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+        <!-- Thanh đo độ mạnh mật khẩu -->
+        <div class="space-y-1.5">
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-slate-400 font-medium">Độ mạnh</span>
+            <span id="gen-strength-label" class="font-bold text-xs">—</span>
+          </div>
+          <div class="h-1.5 bg-slate-950 rounded-full overflow-hidden">
+            <div id="gen-strength-bar" class="h-full rounded-full transition-all duration-300" style="width:0%"></div>
+          </div>
+        </div>
+
+        <!-- Thanh trượt độ dài -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-slate-400 font-medium">Độ dài mật khẩu</span>
+            <span id="generator-length-val" class="font-bold text-brand-500 text-sm">16 ký tự</span>
+          </div>
+          <input type="range" id="generator-length" min="8" max="64" value="16"
+            class="w-full h-1.5 bg-slate-950 rounded-lg appearance-none cursor-pointer accent-brand-500 focus:outline-none">
+        </div>
+
+        <!-- Các tùy chọn cấu hình ký tự -->
+        <div class="space-y-3 pt-2">
+          <label class="flex items-center justify-between p-2.5 bg-slate-950 border border-slate-850/60 rounded-lg cursor-pointer hover:border-slate-800">
+            <span class="text-xs text-slate-300 font-medium">Ký tự viết hoa (A-Z)</span>
+            <input type="checkbox" id="generator-uppercase" checked class="w-4.5 h-4.5 rounded border-slate-850 bg-slate-900 text-brand-500 focus:ring-brand-500">
+          </label>
+
+          <label class="flex items-center justify-between p-2.5 bg-slate-950 border border-slate-850/60 rounded-lg cursor-pointer hover:border-slate-800">
+            <span class="text-xs text-slate-300 font-medium">Ký tự viết thường (a-z)</span>
+            <input type="checkbox" id="generator-lowercase" checked class="w-4.5 h-4.5 rounded border-slate-850 bg-slate-900 text-brand-500 focus:ring-brand-500">
+          </label>
+
+          <label class="flex items-center justify-between p-2.5 bg-slate-950 border border-slate-850/60 rounded-lg cursor-pointer hover:border-slate-800">
+            <span class="text-xs text-slate-300 font-medium">Chữ số (0-9)</span>
+            <input type="checkbox" id="generator-numbers" checked class="w-4.5 h-4.5 rounded border-slate-850 bg-slate-900 text-brand-500 focus:ring-brand-500">
+          </label>
+
+          <label class="flex items-center justify-between p-2.5 bg-slate-950 border border-slate-850/60 rounded-lg cursor-pointer hover:border-slate-800">
+            <span class="text-xs text-slate-300 font-medium">Ký tự đặc biệt (!@#$%^&amp;*)</span>
+            <input type="checkbox" id="generator-symbols" checked class="w-4.5 h-4.5 rounded border-slate-850 bg-slate-900 text-brand-500 focus:ring-brand-500">
+          </label>
+        </div>
+
+        <!-- Nút tạo -->
+        <button id="btn-generate-password" 
+          class="w-full bg-brand-600 hover:bg-brand-500 text-white font-medium py-2.5 px-4 rounded-xl text-xs transition-all flex items-center justify-center gap-1.5">
+          <i data-lucide="refresh-cw" class="w-4 h-4"></i> Tạo Mật Khẩu Mới
+        </button>
+
+        <!-- Nút đóng -->
+        <div class="pt-2 border-t border-slate-800/60 text-right">
+          <button type="button" class="generator-modal-close px-4 py-2 bg-slate-950 border border-slate-800 hover:bg-slate-800 rounded-lg text-xs font-medium text-slate-400 transition-colors">
+            Đóng lại
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ==================== MODAL: CẤU HÌNH HỆ THỐNG (SETTINGS) ==================== -->
+  <div id="settings-modal" class="hidden fixed inset-0 z-40 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+    <div class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden">
+      <!-- Header -->
+      <div class="px-6 py-4 border-b border-slate-800/80 flex items-center justify-between">
+        <h3 class="text-sm font-bold text-white flex items-center gap-2">
+          <i data-lucide="settings" class="w-4 h-4 text-brand-500"></i>
+          <span>Cấu Hình Hệ Thống</span>
+        </h3>
+        <button class="settings-modal-close text-slate-500 hover:text-white transition-colors">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Form cấu hình -->
+      <form id="settings-form" class="p-6 space-y-4">
+        <!-- Thời gian tự động khóa -->
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Thời gian tự động khóa két sắt</label>
+          <select id="settings-auto-lock" class="w-full bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3.5 text-xs text-white focus:outline-none focus:border-brand-500">
+            <option value="1">Sau 1 phút không hoạt động</option>
+            <option value="5" selected>Sau 5 phút không hoạt động</option>
+            <option value="15">Sau 15 phút không hoạt động</option>
+            <option value="30">Sau 30 phút không hoạt động</option>
+            <option value="60">Sau 60 phút không hoạt động</option>
+          </select>
+          <p class="text-[10px] text-slate-500 mt-1.5 leading-relaxed">Két sắt sẽ tự động khóa và xóa khóa giải mã trong bộ nhớ RAM khi bạn không tương tác.</p>
+        </div>
+
+        <!-- Giao diện sáng / tối -->
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Chủ đề giao diện (Theme)</label>
+          <select id="settings-theme" class="w-full bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3.5 text-xs text-white focus:outline-none focus:border-brand-500">
+            <option value="dark" selected>Giao diện tối (Khuyên dùng)</option>
+            <option value="light">Giao diện sáng</option>
+          </select>
+        </div>
+
+        <!-- Đổi Mật Khẩu Chính -->
+        <div class="pt-4 border-t border-slate-800/60 space-y-3">
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400">Đổi mật khẩu chính</label>
+          <input type="password" id="change-old-password" placeholder="Mật khẩu hiện tại"
+            class="w-full bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3.5 text-xs text-white">
+          <input type="password" id="change-new-password" placeholder="Mật khẩu mới (tối thiểu 8 ký tự)"
+            class="w-full bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3.5 text-xs text-white">
+          <input type="password" id="change-confirm-password" placeholder="Xác nhận mật khẩu mới"
+            class="w-full bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3.5 text-xs text-white">
+          <button type="button" id="btn-change-password"
+            class="w-full px-4 py-2.5 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-1.5">
+            <i data-lucide="key-round" class="w-4 h-4"></i> Đổi Mật Khẩu Chính
+          </button>
+          <p class="text-[10px] text-slate-500 leading-relaxed">Toàn bộ dữ liệu sẽ được mã hóa lại bằng mật khẩu mới. Quá trình có thể mất vài giây nếu bạn có nhiều bản ghi.</p>
+        </div>
+
+        <!-- Footer nút hành động -->
+        <div class="pt-4 border-t border-slate-800/60 flex items-center justify-end gap-2">
+          <button type="button" class="settings-modal-close px-4 py-2 bg-slate-950 border border-slate-800 hover:bg-slate-800 rounded-lg text-xs font-medium text-slate-400 transition-colors">
+            Hủy bỏ
+          </button>
+          <button type="submit" class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-medium transition-all">
+            Áp Dụng Cấu Hình
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ==================== TOAST NOTIFICATION SYSTEM (HỆ THỐNG THÔNG BÁO NHANH) ==================== -->
+  <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none">
+    <!-- Các toast thông báo sẽ được sinh tự động bằng JS -->
+  </div>
+
+
+  <!-- ==================== SCRIPT FILES ==================== -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      if (window.lucide) lucide.createIcons();
+    });
+  </script>
+
+  <!-- THỨ TỰ NẠP RẤT QUAN TRỌNG: config -> api -> app -->
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+
+  <script>
+    window.addEventListener('load', () => {
+      if (typeof initializeApp === 'function') {
+        initializeApp();
+      } else {
+        console.error("Lỗi: Không tìm thấy hàm initializeApp trong app.js");
+      }
+    });
+  </script>
+</body>
+</html>
