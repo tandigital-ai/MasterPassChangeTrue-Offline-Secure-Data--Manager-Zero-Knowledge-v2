@@ -293,6 +293,7 @@ async function saveCategory(category) {
   const record = {
     id: categoryId,
     name: category.name,
+    icon: category.icon || 'folder',
     fields: category.fields || [],
     createdAt: category.createdAt || Date.now()
   };

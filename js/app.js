@@ -52,6 +52,22 @@ function showDashboard() {
   refreshIcons();
 }
 
+function openSidebar() {
+  const sb = document.getElementById('sidebar');
+  const ov = document.getElementById('sidebar-overlay');
+  sb.classList.remove('hidden');
+  sb.classList.add('flex');
+  if (ov) ov.classList.remove('hidden');
+}
+function closeSidebar() {
+  if (window.innerWidth >= 768) return; // desktop luôn hiện
+  const sb = document.getElementById('sidebar');
+  const ov = document.getElementById('sidebar-overlay');
+  sb.classList.add('hidden');
+  sb.classList.remove('flex');
+  if (ov) ov.classList.add('hidden');
+}
+
 function refreshIcons() {
   if (window.lucide) setTimeout(() => lucide.createIcons(), 0);
 }
@@ -71,6 +87,12 @@ function setupEventListeners() {
   // Mở khóa
   const unlockForm = document.getElementById('unlock-password-form');
   if (unlockForm) unlockForm.addEventListener('submit', handleUnlockSubmit);
+
+  // Mở/đóng sidebar trên mobile
+  bindClick('btn-open-sidebar', openSidebar);
+  bindClick('btn-open-sidebar-mobile', openSidebar);
+  const overlay = document.getElementById('sidebar-overlay');
+  if (overlay) overlay.addEventListener('click', closeSidebar);
 
   // Khóa vault
   bindClick('btn-lock-vault', handleLock);
@@ -96,7 +118,9 @@ function setupEventListeners() {
 
   // Danh mục
   bindClick('btn-add-category', openCategoryModal);
-  bindClick('btn-add-form-field', addCategoryFieldRow);
+  bindClick('btn-add-form-field', () => addCategoryFieldRow());
+  const tplSel = document.getElementById('category-template-select');
+  if (tplSel) tplSel.addEventListener('change', (e) => applyCategoryTemplate(e.target.value));
   const catForm = document.getElementById('category-form');
   if (catForm) catForm.addEventListener('submit', handleCategorySubmit);
 
@@ -231,6 +255,7 @@ async function seedDefaultCategoriesIfEmpty() {
 function selectFilter(filter) {
   state.currentCategoryId = filter;
   state.currentPage = 1;
+  if (window.innerWidth < 768) closeSidebar();
   renderCategories();
   renderVaultItems();
 }
@@ -254,7 +279,7 @@ function renderCategories() {
     return `
       <button data-cat-id="${cat.id}" class="cat-btn w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all ${active ? 'text-brand-500 bg-brand-500/10' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'}">
         <div class="flex items-center gap-2.5">
-          <i data-lucide="folder" class="w-4 h-4"></i>
+          <i data-lucide="${cat.icon || 'folder'}" class="w-4 h-4"></i>
           <span>${escapeHtml(cat.name)}</span>
         </div>
         <div class="flex items-center gap-1">
@@ -516,25 +541,87 @@ function closeModal(id) {
 }
 
 // ============ MODAL DANH MỤC ============
+const CATEGORY_TEMPLATES = {
+  custom: { name: '', icon: 'folder', fields: [] },
+  vps: { name: 'Máy chủ / VPS', icon: 'server', fields: [
+    { label: 'Tên máy chủ', type: 'text', required: true },
+    { label: 'Địa chỉ IP', type: 'text' },
+    { label: 'Cổng SSH', type: 'number' },
+    { label: 'Tên đăng nhập', type: 'text' },
+    { label: 'Mật khẩu', type: 'password' },
+    { label: 'Ghi chú', type: 'textarea' }
+  ]},
+  medical: { name: 'Hồ sơ y tế', icon: 'heart-pulse', fields: [
+    { label: 'Họ tên', type: 'text', required: true },
+    { label: 'Mã bảo hiểm y tế', type: 'text' },
+    { label: 'Nhóm máu', type: 'text' },
+    { label: 'Dị ứng / Lưu ý', type: 'textarea' }
+  ]},
+  identity: { label: '', name: 'Giấy tờ tùy thân', icon: 'id-card', fields: [
+    { label: 'Loại giấy tờ', type: 'text', required: true },
+    { label: 'Số giấy tờ', type: 'text' },
+    { label: 'Ngày cấp', type: 'date' },
+    { label: 'Nơi cấp', type: 'text' }
+  ]},
+  wifi: { name: 'Mạng Wi-Fi', icon: 'wifi', fields: [
+    { label: 'Tên mạng (SSID)', type: 'text', required: true },
+    { label: 'Mật khẩu', type: 'password' },
+    { label: 'Ghi chú', type: 'textarea' }
+  ]},
+  crypto: { name: 'Ví tiền mã hóa', icon: 'bitcoin', fields: [
+    { label: 'Tên ví', type: 'text', required: true },
+    { label: 'Địa chỉ ví', type: 'text' },
+    { label: 'Cụm từ khôi phục', type: 'password' },
+    { label: 'Ghi chú', type: 'textarea' }
+  ]}
+};
+
 function openCategoryModal() {
-  state.tempCategoryFields = [];
   document.getElementById('category-name-input').value = '';
   document.getElementById('category-fields-container').innerHTML = '';
+  const iconSel = document.getElementById('category-icon-input');
+  if (iconSel) iconSel.value = 'folder';
+  const tplSel = document.getElementById('category-template-select');
+  if (tplSel) tplSel.value = 'custom';
   addCategoryFieldRow();
   openModal('category-modal');
 }
 
-function addCategoryFieldRow() {
+function applyCategoryTemplate(key) {
+  const tpl = CATEGORY_TEMPLATES[key];
+  if (!tpl) return;
+  document.getElementById('category-name-input').value = tpl.name;
+  const iconSel = document.getElementById('category-icon-input');
+  if (iconSel) iconSel.value = tpl.icon;
+  const container = document.getElementById('category-fields-container');
+  container.innerHTML = '';
+  if (tpl.fields.length === 0) {
+    addCategoryFieldRow();
+  } else {
+    tpl.fields.forEach(f => addCategoryFieldRow(f));
+  }
+}
+
+function addCategoryFieldRow(preset) {
   const container = document.getElementById('category-fields-container');
   const row = document.createElement('div');
-  row.className = 'flex gap-2 items-center';
+  row.className = 'flex flex-wrap gap-2 items-center bg-slate-950/40 p-2 rounded-lg';
+  const types = [
+    ['text', 'Văn bản'], ['password', 'Bí mật'], ['textarea', 'Ghi chú dài'],
+    ['email', 'Email'], ['tel', 'Số điện thoại'], ['url', 'Đường dẫn URL'],
+    ['date', 'Ngày tháng'], ['number', 'Số']
+  ];
+  const selType = (preset && preset.type) || 'text';
   row.innerHTML = `
-    <input type="text" placeholder="Nhãn trường (vd: Mật khẩu)" class="cat-field-label flex-1 bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-xs text-white">
+    <input type="text" placeholder="Nhãn trường (vd: Mật khẩu)" value="${preset ? escapeHtml(preset.label) : ''}"
+      class="cat-field-label flex-1 min-w-[140px] bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-xs text-white">
     <select class="cat-field-type bg-slate-950 border border-slate-800 rounded-lg py-2 px-2 text-xs text-white">
-      <option value="text">Văn bản</option>
-      <option value="password">Bí mật</option>
-      <option value="textarea">Ghi chú dài</option>
+      ${types.map(([v, t]) => `<option value="${v}" ${v === selType ? 'selected' : ''}>${t}</option>`).join('')}
     </select>
+    <label class="flex items-center gap-1 text-[10px] text-slate-400 cursor-pointer select-none">
+      <input type="checkbox" class="cat-field-required w-3.5 h-3.5 rounded bg-slate-950 text-brand-500" ${preset && preset.required ? 'checked' : ''}>
+      Bắt buộc
+    </label>
     <button type="button" class="remove-field text-slate-500 hover:text-rose-500 p-1"><i data-lucide="x" class="w-4 h-4"></i></button>`;
   container.appendChild(row);
   row.querySelector('.remove-field').addEventListener('click', () => row.remove());
@@ -545,14 +632,17 @@ async function handleCategorySubmit(e) {
   e.preventDefault();
   const name = document.getElementById('category-name-input').value.trim();
   if (!name) return;
+  const iconSel = document.getElementById('category-icon-input');
+  const icon = iconSel ? iconSel.value : 'folder';
 
   const rows = document.querySelectorAll('#category-fields-container > div');
   const fields = [];
   rows.forEach((row, idx) => {
     const label = row.querySelector('.cat-field-label').value.trim();
     const type = row.querySelector('.cat-field-type').value;
+    const required = row.querySelector('.cat-field-required')?.checked || false;
     if (label) {
-      fields.push({ name: slugify(label) + '_' + idx, label, type });
+      fields.push({ name: slugify(label) + '_' + idx, label, type, required });
     }
   });
   if (fields.length === 0) {
@@ -560,7 +650,7 @@ async function handleCategorySubmit(e) {
     return;
   }
 
-  await saveCategory({ name, fields });
+  await saveCategory({ name, icon, fields });
   closeModal('category-modal');
   await loadAllData();
   showToast('Đã lưu danh mục.', 'success');
@@ -642,6 +732,17 @@ async function handleItemSubmit(e) {
   document.querySelectorAll('#item-fields-container [data-field]').forEach(el => {
     fields[el.getAttribute('data-field')] = el.value;
   });
+
+  // Kiểm tra các trường bắt buộc
+  const cat = state.categories.find(c => c.id === categoryId);
+  if (cat) {
+    for (const fd of cat.fields) {
+      if (fd.required && !String(fields[fd.name] || '').trim()) {
+        showToast(`Trường "${fd.label}" là bắt buộc.`, 'warning');
+        return;
+      }
+    }
+  }
 
   const existing = id ? state.loadedItems.find(i => i.id === id) : null;
   await saveVaultData({

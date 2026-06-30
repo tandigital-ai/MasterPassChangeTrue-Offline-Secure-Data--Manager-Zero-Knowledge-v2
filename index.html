@@ -62,6 +62,32 @@
     ::-webkit-scrollbar-thumb:hover {
       background: rgba(148, 163, 184, 0.5);
     }
+
+    /* ===== GIAO DIỆN SÁNG (LIGHT THEME) ===== */
+    html[data-theme="light"] body { background-color: #f1f5f9; color: #0f172a; }
+    html[data-theme="light"] .bg-slate-950,
+    html[data-theme="light"] .bg-slate-900 { background-color: #ffffff !important; }
+    html[data-theme="light"] .bg-slate-900\/30,
+    html[data-theme="light"] .bg-slate-900\/50,
+    html[data-theme="light"] .bg-slate-900\/10 { background-color: #f8fafc !important; }
+    html[data-theme="light"] .bg-slate-950\/40,
+    html[data-theme="light"] .bg-slate-950\/80 { background-color: #f1f5f9 !important; }
+    html[data-theme="light"] .text-white { color: #0f172a !important; }
+    html[data-theme="light"] .text-slate-100,
+    html[data-theme="light"] .text-slate-200,
+    html[data-theme="light"] .text-slate-300 { color: #1e293b !important; }
+    html[data-theme="light"] .text-slate-400,
+    html[data-theme="light"] .text-slate-500 { color: #64748b !important; }
+    html[data-theme="light"] .text-slate-600 { color: #94a3b8 !important; }
+    html[data-theme="light"] .border-slate-800,
+    html[data-theme="light"] .border-slate-800\/80,
+    html[data-theme="light"] .border-slate-800\/60,
+    html[data-theme="light"] .border-slate-800\/40,
+    html[data-theme="light"] .border-slate-850 { border-color: #e2e8f0 !important; }
+    html[data-theme="light"] .bg-slate-800,
+    html[data-theme="light"] .bg-slate-850 { background-color: #e2e8f0 !important; }
+    html[data-theme="light"] .hover\:bg-slate-800:hover,
+    html[data-theme="light"] .hover\:bg-slate-800\/50:hover { background-color: #f1f5f9 !important; }
   </style>
 </head>
 <body class="h-full flex flex-col overflow-hidden selection:bg-brand-500 selection:text-white">
@@ -170,9 +196,11 @@
 
   <!-- ==================== MAIN DASHBOARD WORKSPACE ==================== -->
   <div id="dashboard-screen" class="hidden h-full flex flex-col md:flex-row overflow-hidden bg-slate-950">
+    <!-- (mobile) lớp phủ khi mở sidebar -->
+    <div id="sidebar-overlay" class="hidden md:hidden fixed inset-0 bg-black/50 z-20"></div>
     
     <!-- SIDEBAR -->
-    <aside id="sidebar" class="w-full md:w-80 bg-slate-900 border-b md:border-b-0 md:border-r border-slate-800 flex flex-col shrink-0 h-auto md:h-full">
+    <aside id="sidebar" class="hidden md:flex fixed md:static inset-y-0 left-0 z-30 w-72 md:w-80 bg-slate-900 border-r border-slate-800 flex-col shrink-0 h-full">
       <!-- Logo và Tiêu đề -->
       <div class="p-4 border-b border-slate-800/80 flex items-center justify-between">
         <div class="flex items-center gap-3">
@@ -264,8 +292,11 @@
     <main class="flex-1 flex flex-col h-full overflow-hidden bg-slate-950">
       
       <!-- TOP NAVIGATION BAR -->
-      <header class="h-16 border-b border-slate-800/80 px-6 flex items-center justify-between shrink-0 bg-slate-900/30">
-        <div class="flex items-center gap-3">
+      <header class="min-h-16 border-b border-slate-800/80 px-4 md:px-6 py-2 flex flex-wrap items-center justify-between gap-2 shrink-0 bg-slate-900/30">
+        <div class="flex items-center gap-2">
+          <button id="btn-open-sidebar" class="md:hidden p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg" title="Mở menu">
+            <i data-lucide="menu" class="w-5 h-5"></i>
+          </button>
           <h1 id="current-category-title" class="text-base font-bold text-white">Tất cả dữ liệu</h1>
           <span id="current-category-count" class="text-xs text-slate-500 font-normal bg-slate-900 border border-slate-800 px-2 py-0.5 rounded-full">0 mục</span>
         </div>
@@ -313,7 +344,7 @@
       </header>
 
       <!-- VAULT ITEMS CONTAINER -->
-      <div class="flex-1 overflow-y-auto p-6">
+      <div class="flex-1 overflow-y-auto p-4 md:p-6">
         <!-- Trạng thái trống (Empty State) -->
         <div id="empty-state" class="hidden flex flex-col items-center justify-center py-20 text-center max-w-md mx-auto">
           <div class="w-16 h-16 rounded-2xl bg-slate-900 border border-slate-800 text-slate-600 flex items-center justify-center mb-4">
@@ -327,7 +358,7 @@
         </div>
 
         <!-- Grid hiển thị danh sách các mục dữ liệu -->
-        <div id="vault-items-grid" class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div id="vault-items-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           <!-- Được render động từ JS -->
         </div>
       </div>
@@ -363,10 +394,39 @@
       <!-- Form -->
       <form id="category-form" class="p-6 space-y-4">
         <div>
-          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Tên danh mục</label>
-          <input type="text" id="category-name-input" required
-            class="w-full bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-brand-500"
-            placeholder="Ví dụ: Tài khoản Ngân hàng, API Keys, Máy chủ VPS...">
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Mẫu dựng sẵn (tùy chọn)</label>
+          <select id="category-template-select" class="w-full bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3.5 text-xs text-white focus:outline-none focus:border-brand-500">
+            <option value="custom">— Tự tạo từ đầu —</option>
+            <option value="vps">Máy chủ / VPS</option>
+            <option value="wifi">Mạng Wi-Fi</option>
+            <option value="crypto">Ví tiền mã hóa</option>
+            <option value="medical">Hồ sơ y tế</option>
+            <option value="identity">Giấy tờ tùy thân</option>
+          </select>
+        </div>
+
+        <div class="flex gap-2">
+          <div class="flex-1">
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Tên danh mục</label>
+            <input type="text" id="category-name-input" required
+              class="w-full bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-brand-500"
+              placeholder="Ví dụ: Máy chủ VPS, Hồ sơ y tế...">
+          </div>
+          <div class="w-32">
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Biểu tượng</label>
+            <select id="category-icon-input" class="w-full bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-2 text-xs text-white focus:outline-none focus:border-brand-500">
+              <option value="folder">📁 Thư mục</option>
+              <option value="key-round">🔑 Khóa</option>
+              <option value="server">🖥️ Máy chủ</option>
+              <option value="wifi">📶 Wi-Fi</option>
+              <option value="credit-card">💳 Thẻ</option>
+              <option value="heart-pulse">❤️ Y tế</option>
+              <option value="id-card">🪪 Giấy tờ</option>
+              <option value="bitcoin">₿ Tiền mã hóa</option>
+              <option value="globe">🌐 Web</option>
+              <option value="mail">✉️ Email</option>
+            </select>
+          </div>
         </div>
 
         <!-- Định nghĩa các trường dữ liệu tùy biến -->
